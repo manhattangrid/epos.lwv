@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LWV Cafe — Cashier Terminal</title>
+    <style>
+        :root {
+            --bg-env: #92b07a;       /* Brand Leafy Light Green */
+            --bg-panel: #ffffff;     /* Clean White Containers */
+            --bg-item: #f4f7f2;      /* Soft Sage Tinted Base */
+            --text-main: #2c3a22;    /* Deep Forest Accent Text */
+            --text-dark: #000000;
+            --border: #d2ded0;       /* Border Tint to Match */
+            --accent-accent: #557241;
+            --radius-main: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-env);
+            color: var(--text-dark);
+            height: 100vh;
+            width: 100vw;
+            padding: 16px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .kiosk-container {
+            width: 100%;
+            max-width: 1440px;
+            height: 100%;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 16px;
+        }
+
+        /* MENU SECTION PANELS */
+        .menu-section {
+            background: var(--bg-panel);
+            border-radius: var(--radius-main);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative; /* For bottom-left watermark placement */
+        }
+
+        .brand-header-wrapper {
+            margin-bottom: 14px;
+            flex-shrink: 0;
+        }
+        .brand-logo-text {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-weight: bold;
+            font-size: 2.4rem;
+            color: var(--text-main);
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+        .brand-logo-sub {
+            font-family: system-ui, sans-serif;
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--text-main);
+            text-transform: uppercase;
+            margin-left: 4px;
+        }
+        .sub-tagline {
+            font-size: 0.85rem;
+            color: #607058;
+            margin-top: 4px;
+            margin-left: 4px;
+        }
+
+        /* Fixed Navigation Scroller */
+        .category-nav {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+            overflow-x: auto;
+            flex-shrink: 0;
+            scrollbar-width: none;
+        }
+        .category-nav::-webkit-scrollbar { display: none; }
+        
+        .cat-btn {
+            background: var(--bg-item);
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--text-main);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .cat-btn.active {
+            background: var(--text-main);
+            color: #ffffff;
+            border-color: var(--text-main);
+        }
+
+        .menu-scroll-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 2px;
+            margin-bottom: 20px; /* Space for watermark footer */
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+            gap: 10px;
+        }
+
+        .menu-item {
+            background: var(--bg-item);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 6px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        .menu-item:hover {
+            border-color: var(--text-main);
+            background: #edf2ea;
+        }
+
+        .menu-item .icon { font-size: 1.8rem; display: block; margin-bottom: 4px; }
+        .menu-item .name { font-weight: 600; font-size: 0.8rem; display: block; color: var(--text-dark); line-height: 1.2; height: 2.4em; overflow: hidden; }
+        .menu-item .price { color: var(--text-main); font-size: 0.8rem; margin-top: 4px; display: block; font-weight: 700; }
+
+        /* Subtle Watermark Branding */
+        .watermark-footer {
+            position: absolute;
+            bottom: 8px;
+            left: 20px;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 0.75rem;
+            color: #b0c2a8; /* Blends nicely with the ecosystem background */
+            user-select: none;
+            pointer-events: none;
+        }
+
+        /* RECEIPT VIEWPORT PANELS */
+        .receipt-section {
+            background: var(--bg-panel);
+            padding: 20px;
+            border-radius: var(--radius-main);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .receipt-scroll {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 12px;
+        }
+
+        #receipt-paper {
+            width: 100%;
+            background: #ffffff;
+            border: 1px dashed #b5b2ae;
+            padding: 16px;
+            box-sizing: border-box;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #000;
+        }
+
+        .receipt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .receipt-header h3 { margin: 0 0 2px 0; font-size: 18px; font-family: 'Georgia', serif; font-weight: 800; letter-spacing: -0.5px; }
+        .receipt-header p { margin: 2px 0; font-size: 10px; color: #333; }
+
+        .receipt-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px dotted #e5e5e5;
+        }
+
+        .item-details {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow: hidden;
+        }
+        .item-details > span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .qty-controls {
+            display: inline-flex;
+            align-items: center;
+            background: #f0f0f0;
+            border-radius: 4px;
+            padding: 1px;
+            flex-shrink: 0;
+            font-family: system-ui, sans-serif;
+        }
+
+        .qty-btn {
+            border: none;
+            background: #ffffff;
+            font-weight: bold;
+            font-size: 11px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+        }
+        
+        .qty-val {
+            font-weight: 700;
+            padding: 0 4px;
+            font-size: 11px;
+            min-width: 14px;
+            text-align: center;
+        }
+
+        .receipt-total {
+            border-top: 1px dashed #000;
+            margin-top: 12px;
+            padding-top: 10px;
+            font-weight: bold;
+            font-size: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .action-buttons { width: 100%; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-main { background: var(--text-main); color: white; }
+        .btn-main:hover { background: var(--accent-accent); }
+        .btn-clear { background: var(--bg-item); color: var(--text-main); border: 1px solid var(--border); }
+        .btn-clear:hover { background: #e4ecd1; }
+
+        /* RESPONSIVE LAYOUT BREAKPOINTS */
+        @media (max-width: 900px) {
+            body { overflow-y: auto; height: auto; }
+            .kiosk-container { grid-template-columns: 1fr; height: auto; }
+            .menu-section, .receipt-section { height: auto; max-height: 600px; }
+            .menu-scroll-container, .receipt-scroll { overflow-y: auto; }
+            .watermark-footer { position: relative; left: 4px; bottom: 0; margin-top: 4px; }
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-paper, #receipt-paper * { visibility: visible; }
+            #receipt-paper { position: absolute; left: 0; top: 0; width: 100%; border: none; }
+            .qty-controls { background: none; padding: 0; }
+            .qty-btn { display: none; }
+            .qty-val { font-size: 12px; }
+            .qty-val::after { content: 'x'; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="kiosk-container">
+    <!-- Left Menu Grid Frame -->
+    <div class="menu-section">
+        <div class="brand-header-wrapper">
+            <div>
+                <span class="brand-logo-text">LWV</span>
+                <span class="brand-logo-sub">Cafe</span>
+            </div>
+            <p class="sub-tagline">Cashier Terminal — Select items to add to current order line.</p>
+        </div>
+        
+        <div class="category-nav">
+            <button class="cat-btn active" onclick="switchCategory('all', this)">All Items (100)</button>
+            <button class="cat-btn" onclick="switchCategory('coffee', this)">Brewed Coffee</button>
+            <button class="cat-btn" onclick="switchCategory('iced', this)">Iced Specialties</button>
+            <button class="cat-btn" onclick="switchCategory('tea', this)">Teas & Matcha</button>
+            <button class="cat-btn" onclick="switchCategory('bakery', this)">Bakery Items</button>
+            <button class="cat-btn" onclick="switchCategory('kitchen', this)">Fresh Food</button>
+        </div>
+
+        <div class="menu-scroll-container">
+            <div class="menu-grid" id="menu-grid">
+                <!-- Dynamically populated via script -->
+            </div>
+        </div>
+
+        <!-- Small branding token styled after "Add a heading (1).png" -->
+        <div class="watermark-footer">manhattangrid</div>
+    </div>
+
+    <!-- Right Continuous Terminal Receipt Roll -->
+    <div class="receipt-section">
+        <div class="receipt-scroll">
+            <div id="receipt-paper">
+                <div class="receipt-header">
+                    <h3>LWV CAFE</h3>
+                    <p>Caramcam P3, Mangagoy</p>
+                    <p>Tel: +63 *** *** ****</p>
+                    <p id="receipt-date" style="margin-top: 4px; font-weight: bold;"></p>
+                    <p>Terminal Register ID: #84-902-A</p>
+                </div>
+                
+                <div id="receipt-items">
+                    <!-- Dynamic Rows Hook -->
+                </div>
+                
+                <div class="receipt-total">
+                    <span>TOTAL AMOUNT:</span>
+                    <span id="receipt-total-val">₱0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-main" onclick="window.print()">🖨️ Send to Receipt Printer</button>
+            <button class="btn btn-clear" onclick="clearOrder()">Clear Order</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Budget-friendly pricing matrix for standard local cafe points
+    const menuItems = [
+        // BREWED COFFEE (1-20)
+        { id: '1', name: 'Hot Americano', price: 55.00, icon: '☕', cat: 'coffee' },
+        { id: '2', name: 'Espresso Shot', price: 45.00, icon: '☕', cat: 'coffee' },
+        { id: '3', name: 'Double Espresso', price: 55.00, icon: '☕', cat: 'coffee' },
+        { id: '4', name: 'Macchiato', price: 60.00, icon: '☕', cat: 'coffee' },
+        { id: '5', name: 'Cortado', price: 65.00, icon: '☕', cat: 'coffee' },
+        { id: '6', name: 'Café au Lait', price: 65.00, icon: '☕', cat: 'coffee' },
+        { id: '7', name: 'Cappuccino 8oz', price: 70.00, icon: '☕', cat: 'coffee' },
+        { id: '8', name: 'Cappuccino 12oz', price: 80.00, icon: '☕', cat: 'coffee' },
+        { id: '9', name: 'Flat White', price: 70.00, icon: '☕', cat: 'coffee' },
+        { id: '10', name: 'Hot Latte 12oz', price: 70.00, icon: '☕', cat: 'coffee' },
+        { id: '11', name: 'Hot Latte 16oz', price: 85.00, icon: '☕', cat: 'coffee' },
+        { id: '12', name: 'Vanilla Latte', price: 80.00, icon: '☕', cat: 'coffee' },
+        { id: '13', name: 'Caramel Latte', price: 80.00, icon: '☕', cat: 'coffee' },
+        { id: '14', name: 'Hazelnut Latte', price: 80.00, icon: '☕', cat: 'coffee' },
+        { id: '15', name: 'Irish Cream Latte', price: 85.00, icon: '☕', cat: 'coffee' },
+        { id: '16', name: 'Cinnamon Latte', price: 80.00, icon: '☕', cat: 'coffee' },
+        { id: '17', name: 'Hot Mocha', price: 80.00, icon: '☕', cat: 'coffee' },
+        { id: '18', name: 'White Choc Mocha', price: 85.00, icon: '☕', cat: 'coffee' },
+        { id: '19', name: 'Vienna Coffee', price: 75.00, icon: '☕', cat: 'coffee' },
+        { id: '20', name: 'Affogato Al Caffe', price: 90.00, icon: '🍨', cat: 'coffee' },
+
+        // ICED SPECIALTIES (21-40)
+        { id: '21', name: 'Iced Americano', price: 60.00, icon: '🧊', cat: 'iced' },
+        { id: '22', name: 'Iced Latte', price: 75.00, icon: '🧊', cat: 'iced' },
+        { id: '23', name: 'Spanish Latte', price: 85.00, icon: '🥤', cat: 'iced' },
+        { id: '24', name: 'Iced Caramel Macch.', price: 85.00, icon: '🧊', cat: 'iced' },
+        { id: '25', name: 'Iced Vanilla Latte', price: 85.00, icon: '🧊', cat: 'iced' },
+        { id: '26', name: 'Iced Mocha', price: 85.00, icon: '🧊', cat: 'iced' },
+        { id: '27', name: 'Iced White Mocha', price: 90.00, icon: '🧊', cat: 'iced' },
+        { id: '28', name: 'Cold Brew Premium', price: 70.00, icon: '☕', cat: 'iced' },
+        { id: '29', name: 'Nitro Cold Brew', price: 85.00, icon: '⚡', cat: 'iced' },
+        { id: '30', name: 'Vanilla Cold Foam CB', price: 90.00, icon: '☁️', cat: 'iced' },
+        { id: '31', name: 'Salted Caramel CB', price: 90.00, icon: '☁️', cat: 'iced' },
+        { id: '32', name: 'Coffee Frappe', price: 90.00, icon: '🥤', cat: 'iced' },
+        { id: '33', name: 'Mocha Frappe', price: 95.00, icon: '🥤', cat: 'iced' },
+        { id: '34', name: 'Caramel Frappe', price: 95.00, icon: '🥤', cat: 'iced' },
+        { id: '35', name: 'White Choc Frappe', price: 100.00, icon: '🥤', cat: 'iced' },
+        { id: '36', name: 'Iced Condensed Brew', price: 75.00, icon: '🥛', cat: 'iced' },
+        { id: '37', name: 'Coconut Cold Brew', price: 85.00, icon: '🥥', cat: 'iced' },
+        { id: '38', name: 'Tonic Espresso Shk', price: 80.00, icon: '🥤', cat: 'iced' },
+        { id: '39', name: 'Mint Iced Espresso', price: 80.00, icon: '🌿', cat: 'iced' },
+        { id: '40', name: 'Iced Chocolate Milk', price: 65.00, icon: '🥛', cat: 'iced' },
+
+        // TEAS & MATCHA (41-60)
+        { id: '41', name: 'Matcha Latte', price: 80.00, icon: '🍵', cat: 'tea' },
+        { id: '42', name: 'Iced Matcha Latte', price: 85.00, icon: '🧊', cat: 'tea' },
+        { id: '43', name: 'Vanilla Matcha', price: 90.00, icon: '🍵', cat: 'tea' },
+        { id: '44', name: 'Strawberry Matcha', price: 95.00, icon: '🍓', cat: 'tea' },
+        { id: '45', name: 'Chai Tea Latte', price: 80.00, icon: '🍂', cat: 'tea' },
+        { id: '46', name: 'Iced Chai Latte', price: 85.00, icon: '🧊', cat: 'tea' },
+        { id: '47', name: 'Dirty Chai Shot', price: 95.00, icon: '🍂', cat: 'tea' },
+        { id: '48', name: 'English Breakfast', price: 55.00, icon: '🫖', cat: 'tea' },
+        { id: '49', name: 'Earl Grey Reserve', price: 55.00, icon: '🫖', cat: 'tea' },
+        { id: '50', name: 'Supreme Jasmine Green', price: 60.00, icon: '🫖', cat: 'tea' },
+        { id: '51', name: 'Chamomile Citrus', price: 60.00, icon: '🫖', cat: 'tea' },
+        { id: '52', name: 'Peppermint Herbal', price: 60.00, icon: '🌿', cat: 'tea' },
+        { id: '53', name: 'Classic Iced Black', price: 60.00, icon: '🥤', cat: 'tea' },
+        { id: '54', name: 'Peach Iced Tea', price: 65.00, icon: '🍑', cat: 'tea' },
+        { id: '55', name: 'Mango Green Iced Tea', price: 65.00, icon: '🥭', cat: 'tea' },
+        { id: '56', name: 'Hibiscus Lemonade', price: 70.00, icon: '🌺', cat: 'tea' },
+        { id: '57', name: 'Matcha Lemonade', price: 80.00, icon: '🍋', cat: 'tea' },
+        { id: '58', name: 'London Fog Tea Latte', price: 75.00, icon: '☁️', cat: 'tea' },
+        { id: '59', name: 'Rooibos Vanilla Blend', price: 65.00, icon: '🫖', cat: 'tea' },
+        { id: '60', name: 'Passion Fruit Oolong', price: 65.00, icon: '🥤', cat: 'tea' },
+
+        // BAKERY ITEMS (61-80)
+        { id: '61', name: 'Butter Croissant', price: 55.00, icon: '🥐', cat: 'bakery' },
+        { id: '62', name: 'Chocolate Croissant', price: 65.00, icon: '🥐', cat: 'bakery' },
+        { id: '63', name: 'Almond Croissant', price: 70.00, icon: '🥐', cat: 'bakery' },
+        { id: '64', name: 'Chocolate Muffin', price: 45.00, icon: '🧁', cat: 'bakery' },
+        { id: '65', name: 'Blueberry Muffin', price: 45.00, icon: '🧁', cat: 'bakery' },
+        { id: '66', name: 'Banana Walnut Loaf', price: 50.00, icon: '🍞', cat: 'bakery' },
+        { id: '67', name: 'Lemon Drizzle Cake', price: 55.00, icon: '🍰', cat: 'bakery' },
+        { id: '68', name: 'Cheesecake Slice', price: 90.00, icon: '🍰', cat: 'bakery' },
+        { id: '69', name: 'Red Velvet Slice', price: 85.00, icon: '🍰', cat: 'bakery' },
+        { id: '70', name: 'Fudge Brownie Tart', price: 45.00, icon: '🍫', cat: 'bakery' },
+        { id: '71', name: 'Choc Chip Cookie', price: 35.00, icon: '🍪', cat: 'bakery' },
+        { id: '72', name: 'Oatmeal Raisin Cookie', price: 35.00, icon: '🍪', cat: 'bakery' },
+        { id: '73', name: 'Cinnamon Roll Glazed', price: 60.00, icon: '🥮', cat: 'bakery' },
+        { id: '74', name: 'Apple Turnover', price: 55.00, icon: '🥧', cat: 'bakery' },
+        { id: '75', name: 'Plain Toasted Bagel', price: 45.00, icon: '🥯', cat: 'bakery' },
+        { id: '76', name: 'Bagel Cream Cheese', price: 55.00, icon: '🥯', cat: 'bakery' },
+        { id: '77', name: 'Blueberry Scone', price: 50.00, icon: '🥮', cat: 'bakery' },
+        { id: '78', name: 'Cranberry Scone', price: 50.00, icon: '🥮', cat: 'bakery' },
+        { id: '79', name: 'Fudge Macaron Set 3x', price: 80.00, icon: '🍡', cat: 'bakery' },
+        { id: '80', name: 'Portuguese Egg Tart', price: 40.00, icon: '🥧', cat: 'bakery' },
+
+        // FRESH FOOD & KITCHEN (81-100)
+        { id: '81', name: 'Avocado Sandwich', price: 110.00, icon: '🥪', cat: 'kitchen' },
+        { id: '82', name: 'Caprese Panini Toast', price: 115.00, icon: '🥪', cat: 'kitchen' },
+        { id: '83', name: 'Turkey Club Wrap', price: 120.00, icon: '🌯', cat: 'kitchen' },
+        { id: '84', name: 'Ham & Swiss Croissant', price: 85.00,  icon: '🥐', cat: 'kitchen' },
+        { id: '85', name: 'Sourdough Grilled Cheese', price: 95.00,  icon: '🍞', cat: 'kitchen' },
+        { id: '86', name: 'Chicken Caesar Salad', price: 120.00, icon: '🥗', cat: 'kitchen' },
+        { id: '87', name: 'Greek Feta Salad Bowl', price: 115.00, icon: '🥗', cat: 'kitchen' },
+        { id: '88', name: 'Smoked Salmon Bagel', price: 135.00, icon: '🥯', cat: 'kitchen' },
+        { id: '89', name: 'Egg & Bacon Brioche', price: 80.00,  icon: '🧁', cat: 'kitchen' },
+        { id: '90', name: 'Spinach Feta Quiche', price: 85.00,  icon: '🥧', cat: 'kitchen' },
+        { id: '91', name: 'Yogurt Honey Parfait', price: 65.00,  icon: 'RM', cat: 'kitchen' },
+        { id: '92', name: 'Overnight Chia Oats', price: 70.00,  icon: '🥣', cat: 'kitchen' },
+        { id: '93', name: 'Fresh Fruit Bowl Mix', price: 70.00,  icon: '🥣', cat: 'kitchen' },
+        { id: '94', name: 'Protein Snack Pack', price: 85.00,  icon: '🍱', cat: 'kitchen' },
+        { id: '95', name: 'Warm Garlic Baguette', price: 55.00,  icon: '🥖', cat: 'kitchen' },
+        { id: '96', name: 'Tomato Basil Soup', price: 75.00,  icon: '🍲', cat: 'kitchen' },
+        { id: '97', name: 'Chicken Pesto Wrap', price: 120.00, icon: '🌯', cat: 'kitchen' },
+        { id: '98', name: 'Sweet Potato Fries', price: 60.00,  icon: '🍟', cat: 'kitchen' },
+        { id: '99', name: 'Belgian Waffle Classic', price: 80.00,  icon: 'Wf', cat: 'kitchen' },
+        { id: '100', name: 'Buttermilk Pancakes', price: 85.00,  icon: '🥞', cat: 'kitchen' }
+    ];
+
+    let currentOrder = {};
+    let activeCategory = 'all';
+
+    function initMenu() {
+        renderGrid();
+        const now = new Date();
+        document.getElementById('receipt-date').innerText = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('menu-grid');
+        const targetItems = activeCategory === 'all' 
+            ? menuItems 
+            : menuItems.filter(item => item.cat === activeCategory);
+
+        grid.innerHTML = targetItems.map(item => `
+            <div class="menu-item" onclick="changeQty('${item.id}', 1)">
+                <span class="icon">${item.icon}</span>
+                <span class="name">${item.name}</span>
+                <span class="price">₱${item.price.toFixed(2)}</span>
+            </div>
+        `).join('');
+    }
+
+    function switchCategory(cat, btn) {
+        activeCategory = cat;
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderGrid();
+    }
+
+    function changeQty(id, modifier) {
+        if (!currentOrder[id] && modifier > 0) {
+            const menuItem = menuItems.find(m => m.id === id);
+            currentOrder[id] = { ...menuItem, qty: 0 };
+        }
+
+        if (currentOrder[id]) {
+            currentOrder[id].qty += modifier;
+            if (currentOrder[id].qty <= 0) {
+                delete currentOrder[id];
+            }
+        }
+        renderReceipt();
+    }
+
+    function clearOrder() {
+        currentOrder = {};
+        renderReceipt();
+    }
+
+    function renderReceipt() {
+        const container = document.getElementById('receipt-items');
+        let total = 0;
+        let html = '';
+
+        for (const id in currentOrder) {
+            const item = currentOrder[id];
+            const itemTotal = item.price * item.qty;
+            total += itemTotal;
+
+            html += `
+                <div class="receipt-row">
+                    <div class="item-details">
+                        <div class="qty-controls">
+                            <button class="qty-btn" onclick="changeQty('${id}', -1)">-</button>
+                            <span class="qty-val">${item.qty}</span>
+                            <button class="qty-btn" onclick="changeQty('${id}', 1)">+</button>
+                        </div>
+                        <span>${item.name}</span>
+                    </div>
+                    <span>₱${itemTotal.toFixed(2)}</span>
+                </div>
+            `;
+        }
+
+        container.innerHTML = html || '<div style="color:#888; text-align:center; padding: 25px 0;">No items loaded</div>';
+        document.getElementById('receipt-total-val').innerText = `₱${total.toFixed(2)}`;
+    }
+
+    initMenu();
+    renderReceipt();
+</script>
+</body>
+</html>
